@@ -32,7 +32,6 @@ const float RANDOM_TEMP = 10.0; // plus or minus noise
 const float MIDTEMP = 60.0;
 const float MIDPRECIP = 14.0;
 
-omp_set_num_threads(4); // same as # of sections
 int Rabbits()
 {
   return 0;
@@ -82,5 +81,7 @@ void function()
 
 int main(void)
 {
+  omp_set_num_threads(4); // same as # of sections
+  printf("main working");
   return 0;
 }
