@@ -210,6 +210,8 @@ void Watcher()
       NowMonth += 1;
     }
 
+    temperature_and_percipitation();
+
     WaitBarrier();
   }
 }
