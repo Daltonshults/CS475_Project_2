@@ -3,6 +3,7 @@
 #include <omp.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 
 // Global Variable
 unsigned int seed = 0;
@@ -31,6 +32,28 @@ const float RANDOM_TEMP = 10.0; // plus or minus noise
 
 const float MIDTEMP = 60.0;
 const float MIDPRECIP = 14.0;
+
+// Ranf
+float Ranf(unsigned int *seedp, float low, float high)
+{
+  float r = (float)rand_r(seedp); // 0 - RAND_MAX
+
+  return (low + r * (high - low) / (float)RAND_MAX);
+}
+
+// Temperature and percipitation
+void temperature_and_percipitation()
+{
+  float ang = (30. * (float)NowMonth + 15.) * (M_PI / 180.);
+
+  float temp = AVG_TEMP - AMP_TEMP * cos(ang);
+  NowTemp = temp + Ranf(&seed, -RANDOM_TEMP, RANDOM_TEMP);
+
+  float precip = AVG_PRECIP_PER_MONTH + AMP_PRECIP_PER_MONTH * sin(ang);
+  NowPrecip = precip + Ranf(&seed, -RANDOM_PRECIP, RANDOM_PRECIP);
+  if (NowPrecip < 0.)
+    NowPrecip = 0.;
+}
 
 int Rabbits()
 {
