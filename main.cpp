@@ -115,7 +115,7 @@ void temperature_and_percipitation()
 // 	WaitBarrier( );	-- or --   #pragma omp barrier;
 // 	. . .
 
-// 	// DoneAssigning barrier:
+// 	// DoneAssigning barrier: SHOULD BE COPYING THE NEXT STATE INTO THE NOW VARIABLES
 // 	WaitBarrier( );	-- or --   #pragma omp barrier;
 // 	. . .
 
@@ -136,8 +136,6 @@ int Rabbits()
   {
     int nextNumRabbits = NowNumRabbits;
     int carryingCapacity = (int)(NowHeight);
-    // Done Calculating
-    WaitBarrier();
 
     if (nextNumRabbits < carryingCapacity)
       nextNumRabbits++;
@@ -146,6 +144,11 @@ int Rabbits()
 
     if (nextNumRabbits < 0)
       nextNumRabbits = 0;
+    // Done Calculating
+    WaitBarrier();
+
+    NowNumRabbits = nextNumRabbits;
+
     // Done Assigning
     WaitBarrier();
 
@@ -162,9 +165,6 @@ void RyeGrass()
     float tempFactor = exp(-Sqr((NowTemp - MIDTEMP) / 10.));
     float precipFactor = exp(-Sqr((NowPrecip - MIDPRECIP) / 10.));
 
-    // Done computing
-    WaitBarrier();
-
     float nextHeight = NowHeight;
     nextHeight += tempFactor * precipFactor * RYEGRASS_GROWS_PER_MONTH;
     nextHeight -= (float)NowNumRabbits * ONE_RABBITS_EATS_PER_MONTH;
@@ -173,6 +173,10 @@ void RyeGrass()
     {
       nextHeight = 0;
     }
+    // Done computing
+    WaitBarrier();
+
+    NowHeight = nextHeight;
 
     // Done Assigning
     WaitBarrier();
@@ -192,7 +196,21 @@ void Watcher()
     // Done Assigning
     WaitBarrier();
 
-    printf("NowNumRabbits: %d", NowNumRabbits);
+    printf("NowMonth: %d\n", NowMonth);
+    printf("NowHeight: %f\n", NowHeight);
+    printf("NowNumRabbits: %d\n", NowNumRabbits);
+
+    if ((NowMonth % 12) == 0)
+    {
+      NowYear += 1;
+      NowMonth += 1;
+    }
+    else
+    {
+      NowMonth += 1;
+    }
+
+    WaitBarrier();
   }
 }
 
@@ -201,8 +219,46 @@ int MyAgent()
   return 0;
 }
 
-void function()
+// void function()
+// {
+// #pragma omp parallel sections
+//   {
+// #pragma omp section
+//     {
+//       Rabbits();
+//     }
+
+// #pragma omp section
+//     {
+//       RyeGrass();
+//     }
+
+// #pragma omp section
+//     {
+//       Watcher();
+//     }
+
+// #pragma omp section
+//     {
+//       MyAgent(); // your own
+//     }
+//   } // implied barrier -- all functions must return in order
+//     // to allow any of them to get past here
+// }
+
+int main(void)
 {
+
+  // Might want to add to main
+  NowMonth = 0;
+  NowYear = 2023;
+
+  // starting state (feel free to change this if you want):
+  NowNumRabbits = 1;
+  NowHeight = 5.;
+
+  omp_set_num_threads(3); // same as # of sections USE 4 after adding your own agent
+  InitBarrier(3);         // Use 4 after adding your own agent
 #pragma omp parallel sections
   {
 #pragma omp section
@@ -220,27 +276,12 @@ void function()
       Watcher();
     }
 
-#pragma omp section
-    {
-      MyAgent(); // your own
-    }
+    // #pragma omp section
+    //     {
+    //       MyAgent(); // your own
+    //     }
   } // implied barrier -- all functions must return in order
     // to allow any of them to get past here
-}
-
-int main(void)
-{
-
-  // Might want to add to main
-  int NowMonth = 0;
-  int NowYear = 2023;
-
-  // starting state (feel free to change this if you want):
-  int NowNumRabbits = 1;
-  float NowHeight = 5.;
-
-  omp_set_num_threads(3); // same as # of sections USE 4 after adding your own agent
-  InitBarrier(3);         // Use 4 after adding your own agent
   printf("main working");
   return 0;
 }
