@@ -33,6 +33,62 @@ const float RANDOM_TEMP = 10.0; // plus or minus noise
 const float MIDTEMP = 60.0;
 const float MIDPRECIP = 14.0;
 
+// starting date and time:
+//-----------------------
+// Might want to add to main
+int NowMonth = 0;
+int NowYear = 2023;
+
+// starting state (feel free to change this if you want):
+int NowNumRabbits = 1;
+float NowHeight = 5.;
+//-----------------------
+// Used for InitBarrier
+omp_lock_t Lock;
+volatile int NumInThreadTeam;
+volatile int NumAtBarrier;
+volatile int NumGone;
+//-----------------------
+
+// specify how many threads will be in the barrier:
+//	(also init's the Lock)
+
+void InitBarrier(int n)
+{
+  NumInThreadTeam = n;
+  NumAtBarrier = 0;
+  omp_init_lock(&Lock);
+}
+
+// have the calling thread wait here until all the other threads catch up:
+
+void WaitBarrier()
+{
+  omp_set_lock(&Lock);
+  {
+    NumAtBarrier++;
+    if (NumAtBarrier == NumInThreadTeam)
+    {
+      NumGone = 0;
+      NumAtBarrier = 0;
+      // let all other threads get back to what they were doing
+      // before this one unlocks, knowing that they might immediately
+      // call WaitBarrier( ) again:
+      while (NumGone != NumInThreadTeam - 1)
+        ;
+      omp_unset_lock(&Lock);
+      return;
+    }
+  }
+  omp_unset_lock(&Lock);
+
+  while (NumAtBarrier != 0)
+    ; // this waits for the nth thread to arrive
+
+#pragma omp atomic
+  NumGone++; // this flags how many threads have returned
+}
+
 // Ranf
 float Ranf(unsigned int *seedp, float low, float high)
 {
@@ -55,14 +111,52 @@ void temperature_and_percipitation()
     NowPrecip = 0.;
 }
 
+//--------------------------------------------------------
+// Structure of simulation functinos
+//
+// while( NowYear < 2029 )
+// {
+// 	// compute a temporary next-value for this quantity
+// 	// based on the current state of the simulation:
+// 	. . .
+
+// 	// DoneComputing barrier:
+// 	WaitBarrier( );	-- or --   #pragma omp barrier;
+// 	. . .
+
+// 	// DoneAssigning barrier:
+// 	WaitBarrier( );	-- or --   #pragma omp barrier;
+// 	. . .
+
+// 	// DonePrinting barrier:
+// 	WaitBarrier( );	-- or --   #pragma omp barrier;
+// 	. . .
+// }
+//--------------------------------------------------------
+
+float Sqr(float x)
+{
+  return x * x;
+}
+
 int Rabbits()
 {
+  while (NowYear < 2029)
+  {
+    int nextNumRabbits = NowNumRabbits;
+  }
   return 0;
 }
 
 int RyeGrass()
 {
-  return 0;
+  while (NowYear < 2029)
+  {
+    float tempFactor = exp(-Sqr((NowTemp - MIDTEMP) / 10.));
+    float percipFactor = exp(-Sqr((NowPrecip - MIDPRECIP) / 10.));
+    WaitBarrier();
+  }
+  return 0
 }
 
 int Watcher()
@@ -104,7 +198,8 @@ void function()
 
 int main(void)
 {
-  omp_set_num_threads(4); // same as # of sections
+  omp_set_num_threads(3); // same as # of sections USE 4 after adding your own agent
+  InitBarrier(3);         // Use 4 after adding your own agent
   printf("main working");
   return 0;
 }
