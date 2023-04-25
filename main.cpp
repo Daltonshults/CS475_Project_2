@@ -132,7 +132,7 @@ float Sqr(float x)
 
 int Rabbits()
 {
-  while (NowYear < 2029)
+  while (NowYear <= 2029)
   {
     int nextNumRabbits = NowNumRabbits;
     int carryingCapacity = (int)(NowHeight);
@@ -160,7 +160,7 @@ int Rabbits()
 
 void RyeGrass()
 {
-  while (NowYear < 2029)
+  while (NowYear <= 2029)
   {
     float tempFactor = exp(-Sqr((NowTemp - MIDTEMP) / 10.));
     float precipFactor = exp(-Sqr((NowPrecip - MIDPRECIP) / 10.));
@@ -188,7 +188,7 @@ void RyeGrass()
 
 void Watcher()
 {
-  while (NowYear < 2029)
+  while (NowYear <= 2029)
   {
     // Done Computing
     WaitBarrier();
