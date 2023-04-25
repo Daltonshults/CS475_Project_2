@@ -33,15 +33,6 @@ const float RANDOM_TEMP = 10.0; // plus or minus noise
 const float MIDTEMP = 60.0;
 const float MIDPRECIP = 14.0;
 
-// starting date and time:
-//-----------------------
-// Might want to add to main
-int NowMonth = 0;
-int NowYear = 2023;
-
-// starting state (feel free to change this if you want):
-int NowNumRabbits = 1;
-float NowHeight = 5.;
 //-----------------------
 // Used for InitBarrier
 omp_lock_t Lock;
@@ -144,24 +135,65 @@ int Rabbits()
   while (NowYear < 2029)
   {
     int nextNumRabbits = NowNumRabbits;
+    int carryingCapacity = (int)(NowHeight);
+    // Done Calculating
+    WaitBarrier();
+
+    if (nextNumRabbits < carryingCapacity)
+      nextNumRabbits++;
+    else if (nextNumRabbits > carryingCapacity)
+      nextNumRabbits--;
+
+    if (nextNumRabbits < 0)
+      nextNumRabbits = 0;
+    // Done Assigning
+    WaitBarrier();
+
+    // Done Printing
+    WaitBarrier();
   }
   return 0;
 }
 
-int RyeGrass()
+void RyeGrass()
 {
   while (NowYear < 2029)
   {
     float tempFactor = exp(-Sqr((NowTemp - MIDTEMP) / 10.));
-    float percipFactor = exp(-Sqr((NowPrecip - MIDPRECIP) / 10.));
+    float precipFactor = exp(-Sqr((NowPrecip - MIDPRECIP) / 10.));
+
+    // Done computing
+    WaitBarrier();
+
+    float nextHeight = NowHeight;
+    nextHeight += tempFactor * precipFactor * RYEGRASS_GROWS_PER_MONTH;
+    nextHeight -= (float)NowNumRabbits * ONE_RABBITS_EATS_PER_MONTH;
+
+    if (nextHeight < 0)
+    {
+      nextHeight = 0;
+    }
+
+    // Done Assigning
+    WaitBarrier();
+
+    // Done Printing
     WaitBarrier();
   }
-  return 0
 }
 
-int Watcher()
+void Watcher()
 {
-  return 0;
+  while (NowYear < 2029)
+  {
+    // Done Computing
+    WaitBarrier();
+
+    // Done Assigning
+    WaitBarrier();
+
+    printf("NowNumRabbits: %d", NowNumRabbits);
+  }
 }
 
 int MyAgent()
@@ -198,6 +230,15 @@ void function()
 
 int main(void)
 {
+
+  // Might want to add to main
+  int NowMonth = 0;
+  int NowYear = 2023;
+
+  // starting state (feel free to change this if you want):
+  int NowNumRabbits = 1;
+  float NowHeight = 5.;
+
   omp_set_num_threads(3); // same as # of sections USE 4 after adding your own agent
   InitBarrier(3);         // Use 4 after adding your own agent
   printf("main working");
