@@ -12,12 +12,13 @@ unsigned int seed = 0;
 int NowYear;  // 2023 - 2028
 int NowMonth; // 0 - 11
 
-float NowPrecip;   // inches of rain per month
-float NowTemp;     // temperature this month
-float NowHeight;   // rye grass height in inches
-int NowNumRabbits; // number of rabbits in the current population
-int NowDeadRabbits;
-int NowNumInfected;
+float NowPrecip;    // inches of rain per month
+float NowTemp;      // temperature this month
+float NowHeight;    // rye grass height in inches
+int NowNumRabbits;  // number of rabbits in the current population
+int NowDeadRabbits; // The number of rabbits that have died since the last simulated month
+int NowNumInfected; // The number of infected rabbits that have resurected from their "cordycep infection"
+int NowNumHunted;
 
 // Parameters
 
@@ -145,6 +146,8 @@ int Rabbits()
     else if (nextNumRabbits > carryingCapacity)
       nextNumRabbits--;
 
+    nextNumRabbits -= NowNumHunted;
+
     if (nextNumRabbits < 0)
       nextNumRabbits = 0;
 
@@ -209,7 +212,10 @@ void Watcher()
     printf("NowHeight: %f\n", NowHeight);
     printf("NowNumRabbits: %d\n", NowNumRabbits);
     printf("NowDeadRabbits: %d\n", NowDeadRabbits);
-    printf("NowNumInfected: %d\n\n", NowNumInfected);
+    printf("NowNumInfected: %d\n", NowNumInfected);
+    printf("NowNumHunted: %d\n\n", NowNumHunted);
+
+    // fprintf(stderr, "%d, %f, %d, %d, %f, %f\n", NowMonth, NowHeight, NowNumRabbits, NowNumInfected, NowTemp, NowPrecip);
 
     NowMonth += 1;
     if ((NowMonth % 12) == 0)
@@ -233,8 +239,11 @@ int Infected()
   while (NowYear < 2029)
   {
     int selectInfected = NowDeadRabbits;
-    int nextNumInfected;
+    int nextNumInfected = 0;
+    int selectHuntedRabbits = NowNumRabbits;
+    int nextNumHunted = 0;
 
+    // 20% chance of a dead rabbit becoming an infected (a rabbit infected with cordyceps and will resurrect)
     while (selectInfected > 0)
     {
 
@@ -245,10 +254,21 @@ int Infected()
 
       selectInfected -= 1;
     }
+
+    while (selectHuntedRabbits > 0)
+    {
+      if (rand() % 100 < NowNumInfected * 2)
+      {
+        nextNumHunted += 1;
+      }
+
+      selectHuntedRabbits -= 1;
+    }
     // Done Calculating
     WaitBarrier();
 
-    NowNumInfected = nextNumInfected;
+    NowNumInfected += nextNumInfected;
+    NowNumHunted = nextNumHunted;
 
     // Done Assigning
     WaitBarrier();
@@ -296,7 +316,11 @@ int main(void)
   // starting state (feel free to change this if you want):
   NowNumRabbits = 1;
   NowHeight = 5.;
-  NowDeadRabbits = 0;
+  NowDeadRabbits = 0; // Initialize to avoid having undefined behavior.
+  NowNumInfected = 0;
+
+  // Initialize weather and percipitation
+  temperature_and_percipitation();
 
   omp_set_num_threads(4); // same as # of sections USE 4 after adding your own agent
   InitBarrier(4);         // Use 4 after adding your own agent
