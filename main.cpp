@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <time.h>
 
 // Global Variable
 unsigned int seed = 0;
@@ -15,6 +16,8 @@ float NowPrecip;   // inches of rain per month
 float NowTemp;     // temperature this month
 float NowHeight;   // rye grass height in inches
 int NowNumRabbits; // number of rabbits in the current population
+int NowDeadRabbits;
+int NowNumInfected;
 
 // Parameters
 
@@ -133,6 +136,7 @@ int Rabbits()
 {
   while (NowYear < 2029)
   {
+    int nextDeadRabbits = NowNumRabbits;
     int nextNumRabbits = NowNumRabbits;
     int carryingCapacity = (int)(NowHeight);
 
@@ -143,9 +147,15 @@ int Rabbits()
 
     if (nextNumRabbits < 0)
       nextNumRabbits = 0;
+
+    nextDeadRabbits = nextDeadRabbits - nextNumRabbits;
+
+    if (nextDeadRabbits < 0)
+      nextDeadRabbits = 0;
     // Done Calculating
     WaitBarrier();
 
+    NowDeadRabbits = nextDeadRabbits;
     NowNumRabbits = nextNumRabbits;
 
     // Done Assigning
@@ -197,26 +207,55 @@ void Watcher()
 
     printf("NowMonth: %d\n", NowMonth);
     printf("NowHeight: %f\n", NowHeight);
-    printf("NowNumRabbits: %d\n\n", NowNumRabbits);
-
+    printf("NowNumRabbits: %d\n", NowNumRabbits);
+    printf("NowDeadRabbits: %d\n", NowDeadRabbits);
+    printf("NowNumInfected: %d\n\n", NowNumInfected);
 
     NowMonth += 1;
-    if ((NowMonth % 12) == 0) {
+    if ((NowMonth % 12) == 0)
+    {
       NowYear += 1;
     }
-    
+
     // {
     //   NowMonth += 1;
     // }
 
     temperature_and_percipitation();
 
+    // Done printing barrier
     WaitBarrier();
   }
 }
 
-int MyAgent()
+int Infected()
 {
+  while (NowYear < 2029)
+  {
+    int selectInfected = NowDeadRabbits;
+    int nextNumInfected;
+
+    while (selectInfected > 0)
+    {
+
+      if (rand() % 100 < 20)
+      {
+        nextNumInfected += 1;
+      }
+
+      selectInfected -= 1;
+    }
+    // Done Calculating
+    WaitBarrier();
+
+    NowNumInfected = nextNumInfected;
+
+    // Done Assigning
+    WaitBarrier();
+
+    // Done Printing
+    WaitBarrier();
+  }
   return 0;
 }
 
@@ -241,7 +280,7 @@ int MyAgent()
 
 // #pragma omp section
 //     {
-//       MyAgent(); // your own
+//       Infected(); // your own
 //     }
 //   } // implied barrier -- all functions must return in order
 //     // to allow any of them to get past here
@@ -253,36 +292,36 @@ int main(void)
   // Might want to add to main
   NowMonth = 0;
   NowYear = 2023;
-
+  srand(time(NULL));
   // starting state (feel free to change this if you want):
   NowNumRabbits = 1;
   NowHeight = 5.;
+  NowDeadRabbits = 0;
 
-  omp_set_num_threads(3); // same as # of sections USE 4 after adding your own agent
-  InitBarrier(3);         // Use 4 after adding your own agent
-    #pragma omp parallel sections
+  omp_set_num_threads(4); // same as # of sections USE 4 after adding your own agent
+  InitBarrier(4);         // Use 4 after adding your own agent
+#pragma omp parallel sections
   {
-    #pragma omp section
+#pragma omp section
     {
       Rabbits();
     }
 
-    #pragma omp section
+#pragma omp section
     {
       RyeGrass();
     }
 
-    #pragma omp section
+#pragma omp section
     {
       Watcher();
     }
 
-    // #pragma omp section
-    //     {
-    //       MyAgent(); // your own
-    //     }
+#pragma omp section
+    {
+      Infected(); // your own
+    }
   } // implied barrier -- all functions must return in order
     // to allow any of them to get past here
-  printf("main working");
   return 0;
 }
