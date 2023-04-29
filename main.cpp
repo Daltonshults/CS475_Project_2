@@ -1,5 +1,4 @@
-#include <CL/cl.h>
-#include <CL/cl_platform.h>
+
 #include <omp.h>
 #include <stdio.h>
 #include <math.h>
@@ -132,7 +131,7 @@ float Sqr(float x)
 
 int Rabbits()
 {
-  while (NowYear <= 2029)
+  while (NowYear < 2029)
   {
     int nextNumRabbits = NowNumRabbits;
     int carryingCapacity = (int)(NowHeight);
@@ -160,7 +159,7 @@ int Rabbits()
 
 void RyeGrass()
 {
-  while (NowYear <= 2029)
+  while (NowYear < 2029)
   {
     float tempFactor = exp(-Sqr((NowTemp - MIDTEMP) / 10.));
     float precipFactor = exp(-Sqr((NowPrecip - MIDPRECIP) / 10.));
@@ -188,7 +187,7 @@ void RyeGrass()
 
 void Watcher()
 {
-  while (NowYear <= 2029)
+  while (NowYear < 2029)
   {
     // Done Computing
     WaitBarrier();
@@ -198,17 +197,17 @@ void Watcher()
 
     printf("NowMonth: %d\n", NowMonth);
     printf("NowHeight: %f\n", NowHeight);
-    printf("NowNumRabbits: %d\n", NowNumRabbits);
+    printf("NowNumRabbits: %d\n\n", NowNumRabbits);
 
-    if ((NowMonth % 12) == 0)
-    {
+
+    NowMonth += 1;
+    if ((NowMonth % 12) == 0) {
       NowYear += 1;
-      NowMonth += 1;
     }
-    else
-    {
-      NowMonth += 1;
-    }
+    
+    // {
+    //   NowMonth += 1;
+    // }
 
     temperature_and_percipitation();
 
@@ -261,19 +260,19 @@ int main(void)
 
   omp_set_num_threads(3); // same as # of sections USE 4 after adding your own agent
   InitBarrier(3);         // Use 4 after adding your own agent
-#pragma omp parallel sections
+    #pragma omp parallel sections
   {
-#pragma omp section
+    #pragma omp section
     {
       Rabbits();
     }
 
-#pragma omp section
+    #pragma omp section
     {
       RyeGrass();
     }
 
-#pragma omp section
+    #pragma omp section
     {
       Watcher();
     }
