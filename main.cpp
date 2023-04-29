@@ -138,7 +138,9 @@ int Rabbits()
   while (NowYear < 2029)
   {
     int nextDeadRabbits = NowNumRabbits;
-    int nextNumRabbits = NowNumRabbits;
+    
+    // Subtracting the number of rabbits that were hunted by the infected
+    int nextNumRabbits = NowNumRabbits - NowNumHunted; 
     int carryingCapacity = (int)(NowHeight);
 
     if (nextNumRabbits < carryingCapacity)
@@ -146,7 +148,7 @@ int Rabbits()
     else if (nextNumRabbits > carryingCapacity)
       nextNumRabbits--;
 
-    nextNumRabbits -= NowNumHunted;
+    //nextNumRabbits -= NowNumHunted;
 
     if (nextNumRabbits < 0)
       nextNumRabbits = 0;
@@ -208,14 +210,14 @@ void Watcher()
     // Done Assigning
     WaitBarrier();
 
-    printf("NowMonth: %d\n", NowMonth);
-    printf("NowHeight: %f\n", NowHeight);
-    printf("NowNumRabbits: %d\n", NowNumRabbits);
-    printf("NowDeadRabbits: %d\n", NowDeadRabbits);
-    printf("NowNumInfected: %d\n", NowNumInfected);
-    printf("NowNumHunted: %d\n\n", NowNumHunted);
+    // printf("NowMonth: %d\n", NowMonth);
+    // printf("NowHeight: %f\n", NowHeight);
+    // printf("NowNumRabbits: %d\n", NowNumRabbits);
+    // printf("NowDeadRabbits: %d\n", NowDeadRabbits);
+    // printf("NowNumInfected: %d\n", NowNumInfected);
+    // printf("NowNumHunted: %d\n\n", NowNumHunted);
 
-    // fprintf(stderr, "%d, %f, %d, %d, %f, %f\n", NowMonth, NowHeight, NowNumRabbits, NowNumInfected, NowTemp, NowPrecip);
+    fprintf(stderr, "%d, %f, %d, %d, %f, %f\n", NowMonth, NowHeight, NowNumRabbits, NowNumInfected, NowTemp, NowPrecip);
 
     NowMonth += 1;
     if ((NowMonth % 12) == 0)
@@ -243,7 +245,8 @@ int Infected()
     int selectHuntedRabbits = NowNumRabbits;
     int nextNumHunted = 0;
 
-    // 20% chance of a dead rabbit becoming an infected (a rabbit infected with cordyceps and will resurrect)
+    // 20% chance of a dead rabbit becoming an infected a rabbit 
+    // infected with cordyceps and will resurrect within the moth
     while (selectInfected > 0)
     {
 
