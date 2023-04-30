@@ -18,7 +18,7 @@ float NowHeight;    // rye grass height in inches
 int NowNumRabbits;  // number of rabbits in the current population
 int NowDeadRabbits; // The number of rabbits that have died since the last simulated month
 int NowNumInfected; // The number of infected rabbits that have resurected from their "cordycep infection"
-int NowNumHunted;
+int NowNumHunted;   // Counts the number of rabbits that are hunted and killed, passed between rabbit and infected
 
 // Parameters
 
@@ -105,42 +105,25 @@ void temperature_and_percipitation()
     NowPrecip = 0.;
 }
 
-//--------------------------------------------------------
-// Structure of simulation functinos
 //
-// while( NowYear < 2029 )
-// {
-// 	// compute a temporary next-value for this quantity
-// 	// based on the current state of the simulation:
-// 	. . .
-
-// 	// DoneComputing barrier:
-// 	WaitBarrier( );	-- or --   #pragma omp barrier;
-// 	. . .
-
-// 	// DoneAssigning barrier: SHOULD BE COPYING THE NEXT STATE INTO THE NOW VARIABLES
-// 	WaitBarrier( );	-- or --   #pragma omp barrier;
-// 	. . .
-
-// 	// DonePrinting barrier:
-// 	WaitBarrier( );	-- or --   #pragma omp barrier;
-// 	. . .
-// }
-//--------------------------------------------------------
-
+// Returns the square root of x
+//
 float Sqr(float x)
 {
   return x * x;
 }
 
+//
+// Responsible for handling the rabbit thread
+//
 int Rabbits()
 {
   while (NowYear < 2029)
   {
     int nextDeadRabbits = NowNumRabbits;
-    
+
     // Subtracting the number of rabbits that were hunted by the infected
-    int nextNumRabbits = NowNumRabbits - NowNumHunted; 
+    int nextNumRabbits = NowNumRabbits - NowNumHunted;
     int carryingCapacity = (int)(NowHeight);
 
     if (nextNumRabbits < carryingCapacity)
@@ -148,7 +131,7 @@ int Rabbits()
     else if (nextNumRabbits > carryingCapacity)
       nextNumRabbits--;
 
-    //nextNumRabbits -= NowNumHunted;
+    // nextNumRabbits -= NowNumHunted;
 
     if (nextNumRabbits < 0)
       nextNumRabbits = 0;
@@ -210,13 +193,6 @@ void Watcher()
     // Done Assigning
     WaitBarrier();
 
-    // printf("NowMonth: %d\n", NowMonth);
-    // printf("NowHeight: %f\n", NowHeight);
-    // printf("NowNumRabbits: %d\n", NowNumRabbits);
-    // printf("NowDeadRabbits: %d\n", NowDeadRabbits);
-    // printf("NowNumInfected: %d\n", NowNumInfected);
-    // printf("NowNumHunted: %d\n\n", NowNumHunted);
-
     fprintf(stderr, "%d, %f, %d, %d, %f, %f\n", NowMonth, NowHeight, NowNumRabbits, NowNumInfected, NowTemp, NowPrecip);
 
     NowMonth += 1;
@@ -245,7 +221,7 @@ int Infected()
     int selectHuntedRabbits = NowNumRabbits;
     int nextNumHunted = 0;
 
-    // 20% chance of a dead rabbit becoming an infected a rabbit 
+    // 20% chance of a dead rabbit becoming an infected a rabbit
     // infected with cordyceps and will resurrect within the moth
     while (selectInfected > 0)
     {
@@ -258,8 +234,10 @@ int Infected()
       selectInfected -= 1;
     }
 
+    // Checking to see how many rabbits were killed by the infected
     while (selectHuntedRabbits > 0)
     {
+      // As the number of infected increases so does the chance of being killed
       if (rand() % 100 < NowNumInfected * 2)
       {
         nextNumHunted += 1;
@@ -270,6 +248,7 @@ int Infected()
     // Done Calculating
     WaitBarrier();
 
+    // Assigning now states
     NowNumInfected += nextNumInfected;
     NowNumHunted = nextNumHunted;
 
@@ -281,33 +260,6 @@ int Infected()
   }
   return 0;
 }
-
-// void function()
-// {
-// #pragma omp parallel sections
-//   {
-// #pragma omp section
-//     {
-//       Rabbits();
-//     }
-
-// #pragma omp section
-//     {
-//       RyeGrass();
-//     }
-
-// #pragma omp section
-//     {
-//       Watcher();
-//     }
-
-// #pragma omp section
-//     {
-//       Infected(); // your own
-//     }
-//   } // implied barrier -- all functions must return in order
-//     // to allow any of them to get past here
-// }
 
 int main(void)
 {
@@ -327,6 +279,7 @@ int main(void)
 
   omp_set_num_threads(4); // same as # of sections USE 4 after adding your own agent
   InitBarrier(4);         // Use 4 after adding your own agent
+
 #pragma omp parallel sections
   {
 #pragma omp section
